@@ -1,0 +1,399 @@
+{% load crispy_forms_tags %}
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Expense Tracker</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #e7e6f5;
+        }
+
+        header {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #4e4c7d;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        nav button {
+            background-color: #4e4c7d;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            padding: 12px 25px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        nav button:hover {
+            background-color: #393864;
+        }
+
+        nav button.active {
+            background-color: #ff6d6d;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+            margin-top: 10px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .form-section h3 {
+            font-size: 1.5rem;
+            color: #4e4c7d;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-size: 1.2rem;
+            color: #4e4c7d;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-group button {
+            background-color: #ff6d6d;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-group button:hover {
+            background-color: #e35b5b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4e4c7d;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        button {
+            background-color: #ff6d6d;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #e35b5b;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Family Expense Tracker</h1>
+</header>
+
+<nav>
+    <button onclick="showTab('dataEntryContent')" class="active">Data Entry</button>
+    <button onclick="showTab('dataOverviewContent')">Data Overview</button>
+    <button onclick="showTab('dataVisualizationContent')">Data Visualization</button>
+</nav>
+
+<div id="dataEntryContent" class="tab-content active">
+    <div class="form-section">
+        <h3>Add Family Member</h3>
+        <form method="post">
+            {% csrf_token %}
+            {{ person_form|crispy }}
+            <div class="form-group">
+                <button type="submit" name="submit_person_form">Add Family Member</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="form-section">
+        <h3>Add Earnings</h3>
+        <form method="post">
+            {% csrf_token %}
+            {{ earning_form|crispy }}
+            <div class="form-group">
+                <button type="submit" name="submit_earning_form">Add Earnings</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="form-section">
+        <h3>Add Expenses</h3>
+        <form method="post">
+            {% csrf_token %}
+            {{ expense_form|crispy }}
+            <div class="form-group">
+                <button type="submit" name="submit_expense_form">Add Expenses</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="dataOverviewContent" class="tab-content">
+    <h3>Persons</h3>
+    <ul id="personList"></ul>
+
+    <h3>Earnings</h3>
+    <ul id="earningList"></ul> <!-- Ensure this exists -->
+
+    <h3>Expenses</h3>
+    <ul id="expenseList"></ul>
+
+</div>
+
+<div id="dataVisualizationContent" class="tab-content">
+    <h2>Data Visualization</h2>
+    <canvas id="expenseChart" width="400" height="200"></canvas>
+</div>
+
+<script>
+    function showTab(tabId) {
+        const tabs = document.querySelectorAll('.tab-content');
+        const buttons = document.querySelectorAll('nav button');
+
+        tabs.forEach(tab => tab.classList.remove('active'));
+        buttons.forEach(button => button.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+        if (tabId === 'dataOverviewContent') {
+            loadDataOverview();
+        }
+        if (tabId === 'dataVisualizationContent') {
+            loadDataVisualization();
+        }
+    }
+
+    function deleteEntry(entryType, entryId) {
+        fetch('/expense/delete-entry/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: new URLSearchParams({
+                'entry_id': entryId,
+                'entry_type': entryType
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to delete entry due to a network error.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Remove the entry row from the table
+                    const entryRow = document.getElementById(`entry-${entryId}`);
+                    if (entryRow) {
+                        entryRow.remove();
+                    }
+
+                    // Update total amount dynamically (if applicable)
+                    if (data.amount) {
+                        updateTotal(data.amount, entryType);
+                    }
+                } else {
+                    alert(data.error || "Failed to delete entry.");
+                }
+            })
+            .catch(error => {
+                alert(`Error: ${error.message}`);
+            });
+    }
+
+
+    function loadDataOverview() {
+        const personList = document.getElementById('personList');
+        const earningList = document.getElementById('earningList'); // Assuming you have a list for earnings
+        const expenseList = document.getElementById('expenseList');
+
+        // Set loading message
+        personList.innerHTML = '<li>Loading...</li>';
+        earningList.innerHTML = '<li>Loading...</li>'; // Add this if you are listing earnings
+        expenseList.innerHTML = '<li>Loading...</li>';
+
+        fetch('/expense/fetch-data-overview/', {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+            .then(response => {
+                // Check if the response is okay
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Check if the data structure is correct
+                console.log("Data received:", data); // Add this line to debug
+
+                // Populate person list
+                personList.innerHTML = data.persons.map(person => `
+                <li>
+                    ${person.name}
+                    <button onclick="deleteEntry('person', ${person.id})">Delete</button>
+                </li>
+            `).join('');
+
+                // Populate earnings list
+                earningList.innerHTML = data.earnings.map(earning => `
+                <li>
+                    ${earning.amount} (${earning.person__name})
+                    <button onclick="deleteEntry('earning', ${earning.id})">Delete</button>
+                </li>
+            `).join('');
+
+                // Populate expense list
+                expenseList.innerHTML = data.expenses.map(expense => `
+                <li>
+                    $${expense.amount} (${expense.person__name} - ${expense.category})
+                    <button onclick="deleteEntry('expense', ${expense.id})">Delete</button>
+                </li>
+            `).join('');
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+                personList.innerHTML = '<li>Error loading persons.</li>';
+                earningList.innerHTML = '<li>Error loading earnings.</li>'; // Add error handling for earnings
+                expenseList.innerHTML = '<li>Error loading expenses.</li>';
+            });
+    }
+
+    function updateTotal(amount, entryType) {
+        const totalElement = document.getElementById(`total-${entryType}`);
+        if (totalElement) {
+            const currentTotal = parseFloat(totalElement.innerText) || 0;
+            totalElement.innerText = (currentTotal - parseFloat(amount)).toFixed(2);
+        }
+    }
+
+    function loadDataVisualization() {
+    fetch('/expense/draw-graph/', {
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Visualization Data:", data); // Debugging
+
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            const expenseChart = new Chart(ctx, {
+                type: 'pie', // Choose chart type: 'bar', 'line', 'pie', etc.
+                data: {
+                    labels: data.earning, // Categories or names
+                    datasets: [{
+                        label: 'Expenses by Category',
+                        data: data.expense, // Expense values
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Expenses Breakdown by Category'
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading visualization data:', error);
+            alert("Failed to load visualization data.");
+        });
+}
+
+
+
+</script>
+</body>
+</html>

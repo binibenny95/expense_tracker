@@ -19,6 +19,7 @@ class Earning(models.Model):
 
 
 class Expense(models.Model):
+
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     amount = models.IntegerField(verbose_name='Amount', default=0)
     date = models.DateField(auto_now_add=True)
